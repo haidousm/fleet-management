@@ -13,8 +13,13 @@ func (app *application) routes() http.Handler {
 		app.notFound(w)
 	})
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
-	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, app.secureHeaders)
+	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
+	router.HandlerFunc(http.MethodGet, "/", app.home)
+
+	// standardMiddleware := alice.New(app.recoverPanic, app.logRequest, app.secureHeaders)
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
 	return standardMiddleware.Then(router)
 }
