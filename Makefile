@@ -18,6 +18,11 @@ build/api:
 	@echo 'Building cmd/api...'
 	go build -ldflags='-s -w' -o=./bin/api ./cmd/api
 
+## dev/robot: run the cmd/robot application
+.PHONY: dev/robot
+dev/robot:
+	go run ./cmd/robot
+
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
 audit:

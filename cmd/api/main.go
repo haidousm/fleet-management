@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/haidousm/delne/internal/vcs"
+	"github.com/haidousm/fleets/internal/vcs"
 )
 
 type config struct {
