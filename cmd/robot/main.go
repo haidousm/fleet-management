@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/eclipse/paho.golang/paho"
 )
 
 type Location struct {
@@ -16,6 +22,7 @@ type Robot struct {
 }
 
 const NumRobots = 10
+const topic = "robots/locations"
 
 func (r *Robot) move(increment int, direction int) {
 	switch direction {
@@ -31,6 +38,12 @@ func (r *Robot) move(increment int, direction int) {
 }
 
 func main() {
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	mqttClient := MQTTClient(ctx, topic)
+
 	robots := make([]Robot, NumRobots)
 
 	for i := 0; i < NumRobots; i++ {
@@ -49,7 +62,15 @@ func main() {
 				case <-ticker.C:
 					direction := rand.Intn(4) - 2
 					robot.move(1, direction)
-					fmt.Println(robot)
+					_, err := mqttClient.Publish(context.Background(), &paho.Publish{
+						Topic: topic,
+						QoS:   0,
+						Payload: []byte(fmt.Sprintf("%s is at (%d, %d)",
+							robot.name, robot.location.x, robot.location.y)),
+					})
+					if err != nil {
+						fmt.Printf("failed to publish message: %s\n", err)
+					}
 				case <-quit:
 					ticker.Stop()
 					return
