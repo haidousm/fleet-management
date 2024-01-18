@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
+	"github.com/haidousm/fleets/internal/maps"
 	"github.com/haidousm/fleets/internal/mqtt"
 )
 
@@ -23,37 +23,64 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	robots := make([]Robot, *num_robots)
+	robots := []*Robot{}
 	for i := 0; i < *num_robots; i++ {
-		robots[i] = NewRobot(i)
+		r := NewRobot(i)
+		robots = append(robots, &r)
 	}
 
-	simulateRobots(ctx, robots)
-}
-
-func simulateRobots(ctx context.Context, robots []Robot) {
-	robotsLocationTopic := "robots/locations"
-	mqttClient := mqtt.Client(ctx, robotsLocationTopic)
-	for _, robot := range robots {
-		go simulateRobot(ctx, robot, mqttClient, robotsLocationTopic)
-	}
+	mqttClient := mqtt.Client(ctx)
+	updateRobotsMap(ctx, mqttClient, robots)
+	simulateRobots(ctx, mqttClient, robots)
 	<-mqttClient.Done()
 }
 
-func simulateRobot(ctx context.Context, robot Robot, mqttClient *autopaho.ConnectionManager, robotsLocationTopic string) {
-	ticker := time.NewTicker(time.Millisecond * 100)
+func updateRobotsMap(ctx context.Context, client *autopaho.ConnectionManager, robots []*Robot) {
+	floorMapTopic := "maps/floor"
+	client.Subscribe(context.Background(), &paho.Subscribe{
+		Subscriptions: []paho.SubscribeOptions{
+			{
+				Topic: floorMapTopic,
+				QoS:   0,
+			},
+		},
+	})
+	client.AddOnPublishReceived(func(pr autopaho.PublishReceived) (bool, error) {
+		var floorMap maps.Map
+
+		bytes := pr.Packet.Payload
+		if err := json.Unmarshal(bytes, &floorMap); err != nil {
+			fmt.Printf("failed to unmarshal floor map: %s\n", err)
+			return false, nil
+		}
+		for _, robot := range robots {
+			robot.UpdateMap(floorMap)
+		}
+		return true, nil
+	})
+}
+
+func simulateRobots(ctx context.Context, client *autopaho.ConnectionManager, robots []*Robot) {
+	robotsLocationTopic := "robots/locations"
+	robotsLocationPub := mqtt.Client(ctx)
+	for _, robot := range robots {
+		go simulateRobot(ctx, client, robot, robotsLocationTopic)
+	}
+	<-robotsLocationPub.Done()
+}
+
+func simulateRobot(ctx context.Context, client *autopaho.ConnectionManager, robot *Robot, robotsLocationTopic string) {
+	ticker := time.NewTicker(time.Millisecond * 10)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			direction := rand.Intn(4) - 2
-			robot.move(5, direction)
-
+			robot.move(1)
 			jsonBytes, err := json.Marshal(robot)
 			if err != nil {
 				fmt.Printf("failed to marshal robot: %s\n", err)
 			}
-			_, err = mqttClient.Publish(context.Background(), &paho.Publish{
+			_, err = client.Publish(context.Background(), &paho.Publish{
 				Topic:   robotsLocationTopic,
 				QoS:     0,
 				Payload: jsonBytes,

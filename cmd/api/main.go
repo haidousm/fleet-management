@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/haidousm/fleets/internal/maps"
 	"github.com/haidousm/fleets/internal/mqtt"
@@ -83,31 +84,30 @@ func main() {
 		{Start: maps.Location{X: 450, Y: 350}, End: maps.Location{X: 500, Y: 350}},
 	}
 
-	floor_map := maps.Map{
+	floorMap := maps.Map{
 		Lines: append(boundary_lines, hallway_lines...),
 		Size:  maps.Size{Width: 500, Height: 500},
 	}
 
-	go broadcastMap(floor_map)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	mqttClient := mqtt.Client(ctx)
 
+	go broadcastMap(ctx, mqttClient, floorMap)
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 	err := srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)
 }
 
-func broadcastMap(floor_map maps.Map) {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
+func broadcastMap(ctx context.Context, client *autopaho.ConnectionManager, floorMap maps.Map) {
 	topic := "maps/floor"
-	client := mqtt.Client(ctx, topic)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			jsonBytes, err := json.Marshal(floor_map)
+			jsonBytes, err := json.Marshal(floorMap)
 			if err != nil {
 				fmt.Printf("failed to marshal floor map: %s\n", err)
 			}

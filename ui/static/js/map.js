@@ -44,19 +44,18 @@ const mapCanvas = document.getElementById("map");
   client.on("message", (_topic, message) => {
     switch (_topic) {
       case robotsLocationTopic:
-        // const data = JSON.parse(message.toString());
-        // const robot = robots.find((robot) => robot?.Name === data?.Name);
-        // if (robot) {
-        //   robot.Location = data.Location;
-        // } else {
-        //   robots.push(data);
-        // }
-        // moveRobot(data);
+        const data = JSON.parse(message.toString());
+        const robot = robots.find((robot) => robot?.Name === data?.Name);
+        if (robot) {
+          robot.Location = data.Location;
+        } else {
+          robots.push(data);
+        }
+        moveRobot(data);
         break;
       case mapsFloorTopic:
         map = JSON.parse(message.toString());
         drawMap(map);
-        // mapElem.style.backgroundImage = `url(${map.Image})`;
         break;
       default:
         break;
@@ -65,20 +64,11 @@ const mapCanvas = document.getElementById("map");
 })();
 
 const moveRobot = (robot) => {
-  // let robotElement = document.getElementById(robot.Name);
-  // if (!robotElement) {
-  //   robotElement = document.createElement("div");
-  //   robotElement.id = robot.Name;
-  //   robotElement.className = "robot";
-  //   mapElem.appendChild(robotElement);
-  // }
-  // const robotSize = 20;
-  // robotElement.style.width = `${robotSize}px`;
-  // robotElement.style.height = `${robotSize}px`;
-  // robotElement.style.position = "absolute";
-  // robotElement.style.left = `${robot.Location.X}px`;
-  // robotElement.style.top = `${robot.Location.Y}px`;
-  // robotElement.style.backgroundColor = "white";
+  const ctx = mapCanvas.getContext("2d");
+  ctx.fillStyle = "blue";
+  ctx.fillRect(robot.Location.X, robot.Location.Y, 10, 10);
+
+  console.log(robot);
 };
 
 const drawMap = (map) => {
@@ -93,7 +83,7 @@ const drawMap = (map) => {
   ctx.fillRect(0, 0, map.Size.Width, map.Size.Height);
 
   ctx.beginPath();
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 1;
   ctx.strokeStyle = "red";
 
   map.Lines.forEach((line) => {
