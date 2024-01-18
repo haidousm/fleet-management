@@ -1,7 +1,7 @@
 const mapElem = document.getElementById("map");
 const mapWidth = mapElem.clientWidth;
 const mapHeight = mapElem.clientHeight;
-const moveRobot = (robot, movementScaleFactor) => {
+const moveRobot = (robot) => {
   let robotElement = document.getElementById(robot.Name);
   if (!robotElement) {
     robotElement = document.createElement("div");
@@ -14,13 +14,11 @@ const moveRobot = (robot, movementScaleFactor) => {
   robotElement.style.width = `${robotSize}px`;
   robotElement.style.height = `${robotSize}px`;
 
-  const robotCenterX = robot.Location.X + robotSize / 2;
-  const robotCenterY = robot.Location.Y + robotSize / 2;
+  robotElement.style.position = "absolute";
+  robotElement.style.left = `${robot.Location.X}px`;
+  robotElement.style.top = `${robot.Location.Y}px`;
 
-  const robotX = movementScaleFactor * robotCenterX + mapWidth / 2;
-  const robotY = movementScaleFactor * robotCenterY + mapHeight / 2;
-  robotElement.style.left = `${robotX}px`;
-  robotElement.style.top = `${robotY}px`;
+  robotElement.style.backgroundColor = "white";
 };
 
 (() => {
@@ -44,13 +42,12 @@ const moveRobot = (robot, movementScaleFactor) => {
   client.on("message", (_topic, message) => {
     if (_topic !== topic) return;
     const data = JSON.parse(message.toString());
-    console.log(data);
     const robot = robots.find((robot) => robot?.Name === data?.Name);
     if (robot) {
       robot.Location = data.Location;
     } else {
       robots.push(data);
     }
-    moveRobot(data, 10);
+    moveRobot(data);
   });
 })();

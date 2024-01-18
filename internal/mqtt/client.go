@@ -1,4 +1,4 @@
-package main
+package mqtt
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/eclipse/paho.golang/paho"
 )
 
-func MQTTClient(ctx context.Context, topic string) *autopaho.ConnectionManager {
+func Client(ctx context.Context, topic string) *autopaho.ConnectionManager {
 	u, err := url.Parse("mqtt://localhost:1883")
 	if err != nil {
 		panic(err)
