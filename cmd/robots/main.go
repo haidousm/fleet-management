@@ -70,7 +70,7 @@ func simulateRobots(ctx context.Context, client *autopaho.ConnectionManager, rob
 }
 
 func simulateRobot(ctx context.Context, client *autopaho.ConnectionManager, robot *Robot, robotsLocationTopic string) {
-	ticker := time.NewTicker(time.Millisecond * 10)
+	ticker := time.NewTicker(time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {

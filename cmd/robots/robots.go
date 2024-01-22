@@ -8,9 +8,10 @@ import (
 )
 
 type Robot struct {
-	Name     string
-	Location maps.Location
-	FloorMap maps.Map
+	Name      string
+	Location  maps.Location
+	FloorMap  maps.Map
+	Direction int
 }
 
 func (r *Robot) getLocation(increment int, direction int) maps.Location {
@@ -29,12 +30,10 @@ func (r *Robot) getLocation(increment int, direction int) maps.Location {
 }
 
 func (r *Robot) move(increment int) {
-	direction := 1
-	for !r.FloorMap.IsLocationValid(r.getLocation(increment, direction)) {
-		direction = rand.Intn(4)
+	for !r.FloorMap.IsLocationValid(r.getLocation(increment, r.Direction)) || r.FloorMap.IsColliding(r.getLocation(increment, r.Direction)) {
+		r.Direction = rand.Intn(4)
 	}
-	fmt.Printf("%d\n", direction)
-	r.Location = r.getLocation(increment, direction)
+	r.Location = r.getLocation(increment, r.Direction)
 }
 
 func (r *Robot) UpdateMap(floorMap maps.Map) {
@@ -43,7 +42,8 @@ func (r *Robot) UpdateMap(floorMap maps.Map) {
 
 func NewRobot(id int) Robot {
 	return Robot{
-		Name:     fmt.Sprintf("Robot %d", id),
-		Location: maps.Location{X: 5, Y: 5},
+		Name:      fmt.Sprintf("Robot %d", id),
+		Location:  maps.Location{X: 5, Y: 5},
+		Direction: 1,
 	}
 }
